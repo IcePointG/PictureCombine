@@ -13,15 +13,15 @@ public static class PictureCombine
 {
 	//考虑到低端机型的原因
 	static int maxWidth = 1024;
-	//合成图片的时候，当前的行数
+	//当前的行数
 	static int gifCurRow = 0;
 	static int pngCurRow = 0;
-	//合成图片的时候，换行时上一行的高度
+	//图片当前的最大高度
+	static int gifMaxHeight = 0;
+	static int pngMaxHeight = 0;
+	//换行时上一行图片的高度
 	static int gifLastRowHeight = 0;
 	static int pngLastRowHeight = 0;
-	//合成图片的时候，前一个图片的高度
-	static int gifLastHeight = 0;
-	static int pngLastHeight = 0;
 
 	[MenuItem ("Assets/Create/PictureCombine")]
 	static void PictureAllCombine ()
@@ -70,12 +70,13 @@ public static class PictureCombine
 
 	static  Bitmap GetGifCombine (List<string> gifs)
 	{
+		Debug.Log ("GetGifCombine： " + gifs.Count);
 		if (gifs.Count == 0)
 			return null;
 
 		gifCurRow = 0; 
-		gifLastHeight = 0;
 		gifLastRowHeight = 0;
+		gifMaxHeight = 0;
 
 		string path = "";
 		Bitmap newBmp = new Bitmap (1, 1);
@@ -128,8 +129,6 @@ public static class PictureCombine
 		{
 			maxHeight = bmp1.Height + bmp2.Height;
 			gifLastRowHeight = bmp1.Height;
-			gifLastHeight = bmp2.Height;
-			//Debug.Log ("换行变高:     lastWidth:"+lastWidth+ "lastHeight:"+lastHeight+",maxHeight:"+ maxHeight);
 		} 
 		else 
 		{
@@ -140,31 +139,24 @@ public static class PictureCombine
 					maxHeight = bmp2.Height;
 				else
 					maxHeight = bmp1.Height;
-
-				gifLastHeight = maxHeight;
-				//Debug.Log ("第1行:           " + maxHeight);
 			}
 			else 
 			{
-				//Debug.Log ("第"+(gifCurRow+1)+"行:       " + bmp2.Height + "," + gifLastHeight);
-				if (bmp2.Height > gifLastHeight) {
-					maxHeight = gifLastRowHeight + bmp2.Height;
-					gifLastHeight = bmp2.Height;
-					//Debug.Log ("行高变高:       " + maxHeight);
-				} else {
-					maxHeight = gifLastRowHeight + gifLastHeight;
-					gifLastHeight = bmp2.Height;
-					//Debug.Log ("行高保持原来:   " + maxHeight);
-				}
+				maxHeight = gifLastRowHeight + bmp2.Height;
 			}
+
 		}
 
+		//记录图片的最高高度
+		if (maxHeight >= gifMaxHeight) {
+			gifMaxHeight = maxHeight;
+		} 
+
 		//限定最大宽度，进行换行排列图片，节省空间
-		Bitmap newBmp = new Bitmap (maxWidth, maxHeight);
+		Bitmap newBmp = new Bitmap (maxWidth, gifMaxHeight);
 		System.Drawing.Graphics g = System.Drawing.Graphics.FromImage (newBmp);
 		g.DrawImage (bmp1, 0, 0);
 		g.DrawImage (bmp2,lastWidth, lastHeight);
-
 		g.Save ();
 
 		string savePath = Application.dataPath + "/PictureCombine/combine/";
@@ -180,12 +172,13 @@ public static class PictureCombine
 
 	static  Bitmap GetJpgCombine (List<string> jpgs)
 	{
+		Debug.Log ("GetJpgCombine： " + jpgs.Count);
 		if (jpgs.Count == 0)
 			return null;
 
 		pngCurRow = 0; 
-		pngLastHeight = 0;
 		pngLastRowHeight = 0;
+		pngMaxHeight = 0;
 
 		string path = "";
 		Bitmap newBmp = new Bitmap (1, 1);
@@ -231,12 +224,13 @@ public static class PictureCombine
 
 	static  Bitmap GetPngCombine (List<string> pngs)
 	{
+		Debug.Log ("GetPngCombine： " + pngs.Count);
 		if (pngs.Count == 0)
 			return null;
 
 		pngCurRow = 0; 
-		pngLastHeight = 0;
 		pngLastRowHeight = 0;
+		pngMaxHeight = 0;
 
 		Bitmap newBmp = new Bitmap (1, 1);
 		int LastWidth = 0;
@@ -281,7 +275,7 @@ public static class PictureCombine
 		{
 			maxHeight = bmp1.Height + bmp2.Height;
 			pngLastRowHeight = bmp1.Height;
-			pngLastHeight = bmp2.Height;
+
 		} 
 		else 
 		{
@@ -292,21 +286,19 @@ public static class PictureCombine
 				else
 					maxHeight = bmp1.Height;
 
-				pngLastHeight = maxHeight;
 			}
 			else 
 			{
-				if (bmp2.Height > pngLastHeight) {
-					maxHeight = pngLastRowHeight + bmp2.Height;
-					pngLastHeight = bmp2.Height;
-				} else {
-					maxHeight = pngLastRowHeight + pngLastHeight;
-					pngLastHeight = bmp2.Height;
-				}
+				maxHeight = pngLastRowHeight + bmp2.Height;
 			}
 		}
 
-		Bitmap newBmp = new Bitmap (maxWidth, maxHeight);
+		//记录当前行的最高高度，作用下一行绘图开始坐标
+		if (maxHeight >= pngMaxHeight) {
+			pngMaxHeight = maxHeight;
+		} 
+
+		Bitmap newBmp = new Bitmap (maxWidth, pngMaxHeight);
 		System.Drawing.Graphics g = System.Drawing.Graphics.FromImage (newBmp);
 		g.DrawImage (bmp1, 0, 0);
 		g.DrawImage (bmp2, lastWidth, lastHeight);
